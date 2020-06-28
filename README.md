@@ -1,5 +1,7 @@
 # Cyberpunk-2077-Sentiment-Analysis
 
+Data scraped by Larxel (https://www.kaggle.com/andrewmvd/cyberpunk-2077/data?select=comments.csv)
+
 
 Things to do
 
