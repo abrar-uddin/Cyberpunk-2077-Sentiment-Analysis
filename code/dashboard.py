@@ -166,27 +166,22 @@ st.write(table)
 '''
 ### Sentiment Analysis From 2012-2020
 '''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table_2012 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt < 2013", con)
-table_2013 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2013 AND publishedAt < 2014", con)
-table_2014 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2014 AND publishedAt < 2015", con)
-table_2015 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2015 AND publishedAt < 2016", con)
-table_2016 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2016 AND publishedAt < 2017", con)
-table_2017 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2017 AND publishedAt < 2018", con)
-table_2018 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2018 AND publishedAt < 2019", con)
-table_2019 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2019 AND publishedAt < 2020", con)
-table_2020 = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment  "
-                          "FROM sentiment_analysis WHERE publishedAt > 2020", con)
-con.close()
+def query_db(num1, num2=None, flip=False):
+    if num2 is None:
+        text = "SELECT textblob_polarity, flair_sentiment FROM sentiment_analysis \
+                WHERE publishedAt < {}".format(num1)
+    elif flip is True:
+        text = "SELECT textblob_polarity, flair_sentiment FROM sentiment_analysis \
+                WHERE publishedAt > {}".format(num1)
+    else:
+        num2 = int(num2)
+        text = "SELECT textblob_polarity, flair_sentiment FROM sentiment_analysis \
+                WHERE publishedAt > {} AND publishedAt < {}".format(num1, num2)
 
+    return text
+
+
+labels = ['2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020']
 textblob_positives = []
 flair_positives = []
 
@@ -195,28 +190,47 @@ textblob_neutral = []
 textblob_negatives = []
 flair_negatives = []
 
-textblob_results = {"positive": 0, "neutral": 0, "negative": 0}
-for x in table_2012['textblob_polarity']:
-    if x == 0.0:
-        textblob_results["neutral"] += 1
-    elif x > 0.0:
-        textblob_results["positive"] += 1
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+for x in labels:
+    textblob_results = {"positive": 0, "neutral": 0, "negative": 0}
+    if labels.index(x) == 2012:
+        table = pd.read_sql_query(query_db(x), con)
+    elif labels.index(x) == 2020:
+        table = pd.read_sql_query(query_db(x, flip=True), con)
     else:
-        textblob_results["negative"] += 1
+        table = pd.read_sql_query(query_db(x, int(x) + 1), con)
 
-textblob_positives.append(textblob_results.get('positive'))
-flair_positives.append(table_2012['flair_sentiment'].value_counts()['POSITIVE'])
+    for x in table['textblob_polarity']:
+        if x == 0.0:
+            textblob_results["neutral"] += 1
+        elif x > 0.0:
+            textblob_results["positive"] += 1
+        else:
+            textblob_results["negative"] += 1
+    textblob_positives.append(textblob_results.get('positive'))
+    flair_positives.append(table['flair_sentiment'].value_counts()['POSITIVE'])
 
-textblob_neutral.append(textblob_results.get('neutral'))
+    textblob_neutral.append(textblob_results.get('neutral'))
 
-textblob_negatives.append(textblob_results.get('negative'))
-flair_negatives.append(table_2012['flair_sentiment'].value_counts()['NEGATIVE'])
+    textblob_negatives.append(textblob_results.get('negative'))
+    flair_negatives.append(table['flair_sentiment'].value_counts()['NEGATIVE'])
+con.close()
 
-labels = ['2012']
+'#### TextBlob'
 fig = go.Figure(data=[
     go.Bar(name='Positive', x=labels, y=textblob_positives),
     go.Bar(name='Neutral', x=labels, y=textblob_neutral),
     go.Bar(name='Negative', x=labels, y=textblob_negatives)
+])
+# Change the bar mode
+fig.update_layout(barmode='group')
+st.plotly_chart(fig)
+
+'#### Flair'
+fig = go.Figure(data=[
+    go.Bar(name='Positive', x=labels, y=flair_positives),
+    go.Bar(name='Neutral', x=labels, y=[]),
+    go.Bar(name='Negative', x=labels, y=flair_negatives)
 ])
 # Change the bar mode
 fig.update_layout(barmode='group')
