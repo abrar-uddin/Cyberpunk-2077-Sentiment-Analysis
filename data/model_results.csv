@@ -1,4 +1,4 @@
-textblob,flair
-53478,70402
-78999.0,
-39304,101379
+Sentiment,textblob,flair
+Positive,53478.0,70402.0
+Neutral,78999.0,
+Negative,39304.0,101379.0
