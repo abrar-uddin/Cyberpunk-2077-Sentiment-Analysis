@@ -1,0 +1,10 @@
+.ipynb_checkpoints
+__pycache__
+/data
+/code/.idea
+/code/.ipynb_checkpoints
+/code/__pycache__
+/code/yberpunk Sentiment Analysis.ipynb
+/code/text_cleaner.ipynb
+/code/text_cleaner.py
+/images/reeves.png
