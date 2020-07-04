@@ -8,3 +8,4 @@
 /code/text_cleaner.ipynb
 /code/text_cleaner.py
 /images/reeves.png
+Dockerfile
