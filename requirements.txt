@@ -1,6 +1,8 @@
-streamlit==0.62.0
 pandas==1.0.5
+streamlit==0.62.0
 flair==0.5
+numpy==1.19.0
 textblob==0.15.3
 plotly==4.8.2
 Pillow==7.2.0
+

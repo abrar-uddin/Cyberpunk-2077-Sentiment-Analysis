@@ -1,15 +1,14 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import sqlite3
 from PIL import Image
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # Sentiment analysis libraries
 from textblob import TextBlob
-import flair
+from flair.models import TextClassifier
+from flair.data import Sentence
 
 st.title('Cyberpunk 2077 Sentiment Analysis')
 
@@ -44,10 +43,10 @@ the text is.
 '''
 
 # Flair Demo
-flair_sentiment = flair.models.TextClassifier.load('en-sentiment')
+flair_sentiment = TextClassifier.load('en-sentiment')
 
 flair_demo = st.text_input('Flair Sentiment Analysis Demo', 'Cyberpunk is the best game of the decade!')
-flair_input = flair.data.Sentence(flair_demo)
+flair_input = Sentence(flair_demo)
 flair_sentiment.predict(flair_input)
 flair_result = str(flair_input.labels[0]).replace('(', '').replace(')', '').split(' ')
 st.write('The sentiment for the inputted text is', flair_result[0], 'with a score of', flair_result[1])
