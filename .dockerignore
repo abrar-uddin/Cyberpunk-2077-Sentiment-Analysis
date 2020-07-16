@@ -1,0 +1,8 @@
+code/
+data/
+/images/reeves.png
+README.txt
+.gitingnore.txt
+!/code/dashboard.py
+!/code/sentiment_analysis_db.sqlite
+!data/model_results.csv

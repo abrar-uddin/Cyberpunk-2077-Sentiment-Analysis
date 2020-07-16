@@ -42,8 +42,14 @@ would be positive with 0.0 being neutral. The subjectivity score is exactly what
 the text is. 
 '''
 
+
 # Flair Demo
-flair_sentiment = TextClassifier.load('en-sentiment')
+@st.cache
+def flair_classifier():
+    return TextClassifier.load('en-sentiment')
+
+
+flair_sentiment = flair_classifier()
 
 flair_demo = st.text_input('Flair Sentiment Analysis Demo', 'Cyberpunk is the best game of the decade!')
 flair_input = Sentence(flair_demo)
@@ -81,85 +87,25 @@ st.write(table,
 
 # Pie Chart
 model_results = pd.read_csv('../data/model_results.csv')
-fig = make_subplots(rows=1, cols=2, specs=[[{'type': 'domain'}, {'type': 'domain'}]])
-fig.add_trace(go.Pie(labels=model_results['Sentiment'], values=model_results['textblob'], name="TextBlob"),
-              1, 1)
-fig.add_trace(go.Pie(labels=model_results['Sentiment'], values=model_results['flair'], name="Flair"),
+fig = make_subplots(rows=2, cols=2,
+                    specs=[[{'type': 'domain'}, {'type': 'domain'}], [{'type': 'xy', "colspan": 2}, None]],
+                    subplot_titles=("TextBlob", "Flair"))
+fig.add_trace(
+    go.Pie(labels=model_results['Sentiment'], values=model_results['textblob'], name="TextBlob", showlegend=False),
+    1, 1)
+fig.add_trace(go.Pie(labels=model_results['Sentiment'], values=model_results['flair'], name="Flair", showlegend=False),
               1, 2)
+fig.add_trace(go.Bar(name='TextBlob', x=model_results['Sentiment'], y=model_results['textblob']), 2, 1)
+fig.add_trace(go.Bar(name='Flair', x=model_results['Sentiment'], y=model_results['flair']), 2, 1)
+
+fig.update_layout(height=700, legend=dict(
+    yanchor="top",
+    y=.37,
+    xanchor="left",
+    x=1
+))
 '### TextBlob vs Flair Classifications'
 st.plotly_chart(fig)
-
-# Bar Chart
-fig = go.Figure(data=[
-    go.Bar(name='TextBlob', x=model_results['Sentiment'], y=model_results['textblob']),
-    go.Bar(name='Flair', x=model_results['Sentiment'], y=model_results['flair'])
-])
-fig.update_layout(barmode='group')
-st.plotly_chart(fig)
-
-# Texts with most likes
-'''
-### Top 3 Most Liked Comments
-'''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table = pd.read_sql_query("SELECT text,publishedAt,likeCount, textblob_polarity, flair_sentiment "
-                          "FROM sentiment_analysis ORDER BY likecount DESC LIMIT 3", con)
-con.close()
-st.table(table)
-
-# Texts with positive TextBlob polarity score
-'''
-### Top 3 Positive TextBlob Polarity Score
-'''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table = pd.read_sql_query(
-    "SELECT text, likeCount, textblob_polarity, textblob_subjectivity, flair_sentiment, flair_score "
-    "FROM sentiment_analysis ORDER BY textblob_polarity DESC LIMIT 3", con)
-con.close()
-st.table(table)
-
-# Texts with positive Flair score
-'''
-### Top 3 Positive Flair Score
-'''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table = pd.read_sql_query(
-    "SELECT text, likeCount, textblob_polarity, textblob_subjectivity, flair_sentiment, flair_score "
-    "FROM sentiment_analysis ORDER BY flair_sentiment DESC, flair_score DESC LIMIT 3", con)
-con.close()
-st.table(table)
-
-# Texts with negative TextBlob polarity score
-'''
-### Top 3 Negative TextBlob Polarity Score
-'''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table = pd.read_sql_query(
-    "SELECT text, likeCount, textblob_polarity, textblob_subjectivity, flair_sentiment, flair_score "
-    "FROM sentiment_analysis ORDER BY textblob_polarity ASC LIMIT 3", con)
-con.close()
-st.table(table)
-
-# Texts with negative Flair score
-'''
-### Top 3 Negative Flair Score
-'''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table = pd.read_sql_query(
-    "SELECT text, likeCount, textblob_polarity, textblob_subjectivity, flair_sentiment, flair_score "
-    "FROM sentiment_analysis ORDER BY flair_sentiment ASC, flair_score ASC LIMIT 3", con)
-con.close()
-st.table(table)
-
-# Texts with longest comment length
-'''
-### Top 2 Longest comments
-'''
-con = sqlite3.connect("sentiment_analysis_db.sqlite")
-table = pd.read_sql_query("SELECT text, comment_length "
-                          "FROM sentiment_analysis ORDER BY comment_length DESC LIMIT 2", con)
-con.close()
-st.write(table)
 
 # Sentiment Analysis From 2012-2020
 '''
@@ -214,21 +160,77 @@ for x in labels:
     flair_negatives.append(table['flair_sentiment'].value_counts()['NEGATIVE'])
 con.close()
 
-'#### TextBlob'
-fig = go.Figure(data=[
-    go.Bar(name='Positive', x=labels, y=textblob_positives),
-    go.Bar(name='Neutral', x=labels, y=textblob_neutral),
-    go.Bar(name='Negative', x=labels, y=textblob_negatives)
-])
-# Change the bar mode
-fig.update_layout(barmode='group')
+fig = make_subplots(rows=1, cols=1,
+                    specs=[[{'type': 'xy'}]])
+fig.add_trace(go.Bar(name='TextBlob: Positive', x=labels, y=flair_positives, legendgroup="group1"), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Neutral', x=labels, y=textblob_neutral, legendgroup="group1"), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Neutral', x=labels, y=textblob_neutral, legendgroup="group1"), 1, 1)
+
+fig.add_trace(go.Bar(name='Flair: Positive', x=labels, y=flair_positives, legendgroup="group2"), 1, 1)
+fig.add_trace(go.Bar(name='Flair: Negative', x=labels, y=flair_negatives, legendgroup="group2"), 1, 1)
+fig.update_layout(height=500, width=750)
 st.plotly_chart(fig)
 
-'#### Flair'
-fig = go.Figure(data=[
-    go.Bar(name='Positive', x=labels, y=flair_positives),
-    go.Bar(name='Neutral', x=labels, y=[]),
-    go.Bar(name='Negative', x=labels, y=flair_negatives)
-])
-fig.update_layout(barmode='group')
-st.plotly_chart(fig)
+# Texts with most likes
+'''
+### Top 3 Most Liked Comments
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+table = pd.read_sql_query("SELECT text,likeCount "
+                          "FROM sentiment_analysis ORDER BY likecount DESC LIMIT 3", con)
+con.close()
+st.table(table)
+
+# Texts with positive TextBlob polarity score
+'''
+### Top 3 Positive TextBlob Polarity Score
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+table = pd.read_sql_query(
+    "SELECT text, textblob_polarity, textblob_subjectivity "
+    "FROM sentiment_analysis ORDER BY textblob_polarity DESC LIMIT 3", con)
+con.close()
+st.table(table)
+
+# Texts with positive Flair score
+'''
+### Top 3 Positive Flair Score
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+table = pd.read_sql_query(
+    "SELECT text, flair_sentiment, flair_score "
+    "FROM sentiment_analysis ORDER BY flair_sentiment DESC, flair_score DESC LIMIT 3", con)
+con.close()
+st.table(table)
+
+# Texts with negative TextBlob polarity score
+'''
+### Top 3 Negative TextBlob Polarity Score
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+table = pd.read_sql_query(
+    "SELECT text, textblob_polarity, textblob_subjectivity "
+    "FROM sentiment_analysis ORDER BY textblob_polarity ASC LIMIT 3", con)
+con.close()
+st.table(table)
+
+# Texts with negative Flair score
+'''
+### Top 3 Negative Flair Score
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+table = pd.read_sql_query(
+    "SELECT text, flair_sentiment, flair_score "
+    "FROM sentiment_analysis ORDER BY flair_sentiment ASC, flair_score ASC LIMIT 3", con)
+con.close()
+st.table(table)
+
+# Texts with longest comment length
+'''
+### Top 2 Longest comments
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+table = pd.read_sql_query("SELECT text, comment_length "
+                          "FROM sentiment_analysis ORDER BY comment_length DESC LIMIT 2", con)
+con.close()
+st.table(table.style.format({"text": lambda z: z[0:40] + '...'}))
