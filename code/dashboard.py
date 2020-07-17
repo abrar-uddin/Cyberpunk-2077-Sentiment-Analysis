@@ -162,12 +162,12 @@ con.close()
 
 fig = make_subplots(rows=1, cols=1,
                     specs=[[{'type': 'xy'}]])
-fig.add_trace(go.Bar(name='TextBlob: Positive', x=labels, y=flair_positives, legendgroup="group1"), 1, 1)
-fig.add_trace(go.Bar(name='TextBlob: Neutral', x=labels, y=textblob_neutral, legendgroup="group1"), 1, 1)
-fig.add_trace(go.Bar(name='TextBlob: Neutral', x=labels, y=textblob_neutral, legendgroup="group1"), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Positive', x=labels, y=textblob_positives), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Neutral', x=labels, y=textblob_neutral), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Negative', x=labels, y=textblob_negatives), 1, 1)
 
-fig.add_trace(go.Bar(name='Flair: Positive', x=labels, y=flair_positives, legendgroup="group2"), 1, 1)
-fig.add_trace(go.Bar(name='Flair: Negative', x=labels, y=flair_negatives, legendgroup="group2"), 1, 1)
+fig.add_trace(go.Bar(name='Flair: Positive', x=labels, y=flair_positives), 1, 1)
+fig.add_trace(go.Bar(name='Flair: Negative', x=labels, y=flair_negatives), 1, 1)
 fig.update_layout(height=500, width=750)
 st.plotly_chart(fig)
 
