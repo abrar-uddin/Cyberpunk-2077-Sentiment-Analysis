@@ -107,6 +107,14 @@ fig.update_layout(height=700, legend=dict(
 '### TextBlob vs Flair Classifications'
 st.plotly_chart(fig)
 
+# Google Trends
+'''
+Google Trends Chart 2012-2020
+'''
+google_trends = pd.read_csv('../data/raw_data/google_trends_cyberpunk.csv')
+fig = go.Figure(data=go.Scatter(name='Google Trends', x=google_trends['year-month'], y=google_trends['cyberpunk 2077']))
+st.plotly_chart(fig)
+
 # Sentiment Analysis From 2012-2020
 '''
 ### Sentiment Analysis From 2012-2020
