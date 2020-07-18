@@ -62,6 +62,13 @@ With [Flair](https://github.com/flairNLP/flair) given the inputted text it spits
 NEGATIVE with a confidence score in the range of [0.0, 1.0]. 
 '''
 
+
+@st.cache
+# Function to read CSVs
+def read_csv(path):
+    return pd.read_csv(path)
+
+
 '''
 # Dataset
 '''
@@ -86,7 +93,7 @@ st.write(table,
 '''
 
 # Pie Chart
-model_results = pd.read_csv('../data/model_results.csv')
+model_results = read_csv('../data/model_results.csv')
 fig = make_subplots(rows=2, cols=2,
                     specs=[[{'type': 'domain'}, {'type': 'domain'}], [{'type': 'xy', "colspan": 2}, None]],
                     subplot_titles=("TextBlob", "Flair"))
@@ -103,24 +110,10 @@ fig.update_layout(height=700, legend=dict(
     y=.37,
     xanchor="left",
     x=1
-))
-'### TextBlob vs Flair Classifications'
-st.plotly_chart(fig)
-
-# Google Trends
-'''
-Google Trends Chart 2012-2020
-'''
-google_trends = pd.read_csv('../data/raw_data/google_trends_cyberpunk.csv')
-fig = go.Figure(data=go.Scatter(name='Google Trends', x=google_trends['year-month'], y=google_trends['cyberpunk 2077']))
+), title_text='TextBlob vs Flair Sentiment Classifications')
 st.plotly_chart(fig)
 
 # Sentiment Analysis From 2012-2020
-'''
-### Sentiment Analysis From 2012-2020
-'''
-
-
 def query_db(num1, num2=None, flip=False):
     if num2 is None:
         text = "SELECT textblob_polarity, flair_sentiment FROM sentiment_analysis \
@@ -176,8 +169,66 @@ fig.add_trace(go.Bar(name='TextBlob: Negative', x=labels, y=textblob_negatives),
 
 fig.add_trace(go.Bar(name='Flair: Positive', x=labels, y=flair_positives), 1, 1)
 fig.add_trace(go.Bar(name='Flair: Negative', x=labels, y=flair_negatives), 1, 1)
-fig.update_layout(height=500, width=750)
+fig.update_layout(height=500, width=750, title_text='Sentiment Analysis From 2012-2020')
 st.plotly_chart(fig)
+
+# Google Trends
+google_trends = read_csv('../data/raw_data/google_trends_cyberpunk.csv')
+fig = go.Figure(data=go.Scatter(name='Google Trends', x=google_trends['year-month'], y=google_trends['cyberpunk 2077']))
+fig.update_layout(title_text='Google Trends')
+st.plotly_chart(fig)
+
+# Video Statistics
+'''
+### Statistics by Video
+'''
+con = sqlite3.connect("sentiment_analysis_db.sqlite")
+index = pd.read_sql_query("SELECT videoId "
+                          "FROM sentiment_analysis GROUP BY videoId", con)
+table1 = pd.read_sql_query("SELECT COUNT(textblob_polarity) as TextBlob_Positive "
+                          "FROM sentiment_analysis WHERE textblob_polarity > 0 GROUP BY videoId", con)
+table2 = pd.read_sql_query("SELECT COUNT(textblob_subjectivity) as TextBlob_Neutral "
+                          "FROM sentiment_analysis WHERE textblob_subjectivity == 0 GROUP BY videoId", con)
+table3 = pd.read_sql_query("SELECT COUNT(textblob_polarity) as TextBlob_Negative "
+                          "FROM sentiment_analysis WHERE textblob_polarity < 0 GROUP BY videoId", con)
+
+table4 = pd.read_sql_query("SELECT COUNT(flair_score) as Flair_Positive "
+                          "FROM sentiment_analysis WHERE flair_sentiment == \"POSITIVE\" GROUP BY videoId", con)
+table5 = pd.read_sql_query("SELECT COUNT(flair_score) as Flair_Negative "
+                          "FROM sentiment_analysis WHERE flair_sentiment == \"NEGATIVE\" GROUP BY videoId", con)
+con.close()
+frames = [index, table1, table2, table3, table4, table5]
+frames = pd.concat(frames, axis=1).set_index('videoId')
+vid_table = read_csv('../data/raw_data/videos.csv')
+table = frames.merge(vid_table, left_on='videoId', right_on='videoId').drop(['categoryId', 'channelId', 'description'],
+                                                                           axis=1).sort_values(['publishedAt'],
+                                                                                         ignore_index=True)
+table['publishedAt'] = pd.to_datetime(table['publishedAt'])
+
+# Views
+fig = make_subplots(rows=1, cols=1,
+                    specs=[[{'type': 'xy'}]])
+fig = go.Figure([go.Bar(x=table['title'], y=table['viewCount'])])
+fig.update_layout(title_text='CyberPunk Video Views')
+fig.update_xaxes(showticklabels=False)
+st.plotly_chart(fig)
+
+# Sentiment by Video
+fig = make_subplots(rows=1, cols=1,
+                    specs=[[{'type': 'xy'}]])
+# TextBlob
+fig.add_trace(go.Bar(name='TextBlob: Positive', x=table['title'], y=table['TextBlob_Positive']), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Neutral', x=table['title'], y=table['TextBlob_Neutral']), 1, 1)
+fig.add_trace(go.Bar(name='TextBlob: Negative', x=table['title'], y=table['TextBlob_Negative']), 1, 1)
+# Flair
+fig.add_trace(go.Bar(name='Flair: Positive', x=table['title'], y=table['Flair_Positive']), 1, 1)
+fig.add_trace(go.Bar(name='Flair: Negative', x=table['title'], y=table['Flair_Negative']), 1, 1)
+fig.update_layout(title_text='CyberPunk Video Sentiments', height=700, width=1000)
+fig.update_xaxes(showticklabels=False)
+st.plotly_chart(fig)
+
+st.write(table[['title', 'viewCount', 'likeCount', 'dislikeCount', 'commentCount', 'publishedAt']])
+
 
 # Texts with most likes
 '''
