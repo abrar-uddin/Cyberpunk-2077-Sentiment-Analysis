@@ -4,6 +4,7 @@ import sqlite3
 from PIL import Image
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.express as px
 
 # Sentiment analysis libraries
 from textblob import TextBlob
@@ -55,7 +56,7 @@ flair_demo = st.text_input('Flair Sentiment Analysis Demo', 'Cyberpunk is the be
 flair_input = Sentence(flair_demo)
 flair_sentiment.predict(flair_input)
 flair_result = str(flair_input.labels[0]).replace('(', '').replace(')', '').split(' ')
-st.write('The sentiment for the inputted text is', flair_result[0], 'with a score of', flair_result[1])
+st.write('The sentiment for the inputted text is', '**'+flair_result[0]+'**', 'with a score of', float(flair_result[1]))
 
 '''
 With [Flair](https://github.com/flairNLP/flair) given the inputted text it spits back a binary label of POSITIVE or
@@ -203,7 +204,7 @@ frames = pd.concat(frames, axis=1)
 vid_table = read_csv('../data/raw_data/videos.csv')
 table = frames.merge(vid_table, left_on='videoId', right_on='videoId').drop(['categoryId', 'channelId', 'description'],
                                                                             axis=1).sort_values(
-                                                                            ['publishedAt']).set_index('videoId')
+    ['publishedAt']).set_index('videoId')
 # Video Stats
 fig = make_subplots(rows=2, cols=2,
                     specs=[[{'type': 'xy'}, {'type': 'xy'}], [{'type': 'xy', "colspan": 2}, None]],
@@ -243,9 +244,10 @@ for i in range(19):
                values=table[['TextBlob_Positive', 'TextBlob_Neutral', 'TextBlob_Negative']].iloc[i], name="TextBlob",
                showlegend=False),
         1, 1)
-    fig.add_trace(go.Pie(labels=model_results['Sentiment'].drop(1), values=table[['Flair_Positive', 'Flair_Negative']].iloc[i],
-                         name="Flair", showlegend=False),
-                  1, 2)
+    fig.add_trace(
+        go.Pie(labels=model_results['Sentiment'].drop(1), values=table[['Flair_Positive', 'Flair_Negative']].iloc[i],
+               name="Flair", showlegend=False),
+        1, 2)
     fig.update_layout(title_text=table['title'][i])
     st.plotly_chart(fig)
 
@@ -253,64 +255,85 @@ st.write(table)
 
 # Texts with most likes
 '''
-### Top 3 Most Liked Comments
+### Top 5 Most Liked Comments
 '''
 con = sqlite3.connect("sentiment_analysis_db.sqlite")
 table = pd.read_sql_query("SELECT text,likeCount "
-                          "FROM sentiment_analysis ORDER BY likecount DESC LIMIT 3", con)
+                          "FROM sentiment_analysis ORDER BY likecount DESC LIMIT 5", con)
 con.close()
 st.table(table)
 
 # Texts with positive TextBlob polarity score
 '''
-### Top 3 Positive TextBlob Polarity Score
+### Top 5 Positive TextBlob Polarity Score
 '''
 con = sqlite3.connect("sentiment_analysis_db.sqlite")
 table = pd.read_sql_query(
     "SELECT text, textblob_polarity, textblob_subjectivity "
-    "FROM sentiment_analysis ORDER BY textblob_polarity DESC LIMIT 3", con)
+    "FROM sentiment_analysis ORDER BY textblob_polarity DESC LIMIT 5", con)
 con.close()
 st.table(table)
 
 # Texts with positive Flair score
 '''
-### Top 3 Positive Flair Score
+### Top 5 Positive Flair Score
 '''
 con = sqlite3.connect("sentiment_analysis_db.sqlite")
 table = pd.read_sql_query(
     "SELECT text, flair_sentiment, flair_score "
-    "FROM sentiment_analysis ORDER BY flair_sentiment DESC, flair_score DESC LIMIT 3", con)
+    "FROM sentiment_analysis ORDER BY flair_sentiment DESC, flair_score DESC LIMIT 5", con)
 con.close()
 st.table(table)
 
 # Texts with negative TextBlob polarity score
 '''
-### Top 3 Negative TextBlob Polarity Score
+### Top 5 Negative TextBlob Polarity Score
 '''
 con = sqlite3.connect("sentiment_analysis_db.sqlite")
 table = pd.read_sql_query(
     "SELECT text, textblob_polarity, textblob_subjectivity "
-    "FROM sentiment_analysis ORDER BY textblob_polarity ASC LIMIT 3", con)
+    "FROM sentiment_analysis ORDER BY textblob_polarity ASC LIMIT 5", con)
 con.close()
 st.table(table)
 
 # Texts with negative Flair score
 '''
-### Top 3 Negative Flair Score
+### Top 5 Negative Flair Score
 '''
 con = sqlite3.connect("sentiment_analysis_db.sqlite")
 table = pd.read_sql_query(
     "SELECT text, flair_sentiment, flair_score "
-    "FROM sentiment_analysis ORDER BY flair_sentiment ASC, flair_score ASC LIMIT 3", con)
+    "FROM sentiment_analysis ORDER BY flair_sentiment ASC, flair_score DESC LIMIT 5", con)
 con.close()
 st.table(table)
 
 # Texts with longest comment length
 '''
-### Top 2 Longest comments
+### Top 5 Longest comments
 '''
 con = sqlite3.connect("sentiment_analysis_db.sqlite")
 table = pd.read_sql_query("SELECT text, comment_length "
-                          "FROM sentiment_analysis ORDER BY comment_length DESC LIMIT 2", con)
+                          "FROM sentiment_analysis ORDER BY comment_length DESC LIMIT 5", con)
 con.close()
 st.table(table.style.format({"text": lambda z: z[0:40] + '...'}))
+
+'''
+# Conclusion 
+From analyzing the charts we can see that less than 1% of the viewership engages with the video. From 
+those that do decide to comment we can infer that they tend to feel strongly about the game as commenters are in the 
+minority. The classified sentiments from Flair tends to be much more accurate than TextBlob as we can see from the 
+comparisons above; the Top 5 Negative TextBlob sentiments are 4/5 false positive. As such we will only consider the 
+Flair sentiment in our conclusions. Flair tends to be more negative than positive, however we need to look at this 
+with a bit of skepticism as we saw from the Top 5 negative comments there can be false negatives. Also taking into 
+consideration the fact that the videos tend to have very low dislike values we can take that as an indicator that 
+viewers who felt strongly negative after watching the video chose to comment versus those who enjoyed the video but 
+only chose to hit the like button. Tasking a look at the most positive comments they tend to be high quality genuine 
+admiration for the game. Although there are a minority who dislike the video the negative comments tend to make up 
+most of the comment section or so **I thought**. Taking a closer look at the comments that were classified negative 
+it turns out there may be more **objectively** negative comment in other words false positives. Comments with 
+negative words but are intended in a positive sentiment. Taking a closer look at the TextBlob classifications as well 
+we see a similar situation. This is an inherent flaw in using a pre-trained model as it lacks the contextual learning 
+from supervised methods that can prevent this kinds of misclassifications. For example a comment that simply states 
+"KEANUUUUUU" is classified as negative with a score of 0.5006 under Flair. From the score we can see that the model 
+is unsure of this classification and is guessing it is negative. The lesson to gleam from this is that gamers seem to 
+make positive comments with negative sentiments. '''
