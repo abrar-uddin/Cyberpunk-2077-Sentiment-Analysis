@@ -113,6 +113,7 @@ fig.update_layout(height=700, legend=dict(
 ), title_text='TextBlob vs Flair Sentiment Classifications')
 st.plotly_chart(fig)
 
+
 # Sentiment Analysis From 2012-2020
 def query_db(num1, num2=None, flip=False):
     if num2 is None:
@@ -186,30 +187,36 @@ con = sqlite3.connect("sentiment_analysis_db.sqlite")
 index = pd.read_sql_query("SELECT videoId "
                           "FROM sentiment_analysis GROUP BY videoId", con)
 table1 = pd.read_sql_query("SELECT COUNT(textblob_polarity) as TextBlob_Positive "
-                          "FROM sentiment_analysis WHERE textblob_polarity > 0 GROUP BY videoId", con)
+                           "FROM sentiment_analysis WHERE textblob_polarity > 0 GROUP BY videoId", con)
 table2 = pd.read_sql_query("SELECT COUNT(textblob_subjectivity) as TextBlob_Neutral "
-                          "FROM sentiment_analysis WHERE textblob_subjectivity == 0 GROUP BY videoId", con)
+                           "FROM sentiment_analysis WHERE textblob_subjectivity == 0 GROUP BY videoId", con)
 table3 = pd.read_sql_query("SELECT COUNT(textblob_polarity) as TextBlob_Negative "
-                          "FROM sentiment_analysis WHERE textblob_polarity < 0 GROUP BY videoId", con)
+                           "FROM sentiment_analysis WHERE textblob_polarity < 0 GROUP BY videoId", con)
 
 table4 = pd.read_sql_query("SELECT COUNT(flair_score) as Flair_Positive "
-                          "FROM sentiment_analysis WHERE flair_sentiment == \"POSITIVE\" GROUP BY videoId", con)
+                           "FROM sentiment_analysis WHERE flair_sentiment == \"POSITIVE\" GROUP BY videoId", con)
 table5 = pd.read_sql_query("SELECT COUNT(flair_score) as Flair_Negative "
-                          "FROM sentiment_analysis WHERE flair_sentiment == \"NEGATIVE\" GROUP BY videoId", con)
+                           "FROM sentiment_analysis WHERE flair_sentiment == \"NEGATIVE\" GROUP BY videoId", con)
 con.close()
 frames = [index, table1, table2, table3, table4, table5]
-frames = pd.concat(frames, axis=1).set_index('videoId')
+frames = pd.concat(frames, axis=1)
 vid_table = read_csv('../data/raw_data/videos.csv')
 table = frames.merge(vid_table, left_on='videoId', right_on='videoId').drop(['categoryId', 'channelId', 'description'],
-                                                                           axis=1).sort_values(['publishedAt'],
-                                                                                         ignore_index=True)
-table['publishedAt'] = pd.to_datetime(table['publishedAt'])
+                                                                            axis=1).sort_values(
+                                                                            ['publishedAt']).set_index('videoId')
+# Video Stats
+fig = make_subplots(rows=2, cols=2,
+                    specs=[[{'type': 'xy'}, {'type': 'xy'}], [{'type': 'xy', "colspan": 2}, None]],
+                    subplot_titles=("View Count vs Comment Count", "Like vs Dislike", "Percent of Viewers Commented"))
+fig.add_trace(go.Bar(name='View Count', x=table['title'], y=table['viewCount']), 1, 1)
+fig.add_trace(go.Bar(name='Comment Count', x=table['title'], y=table['commentCount']), 1, 1)
+fig.add_trace(go.Bar(name='Like Count', x=table['title'], y=table['likeCount']), 1, 2)
+fig.add_trace(go.Bar(name='Dislike Count', x=table['title'], y=table['dislikeCount']), 1, 2)
+fig.add_trace(go.Bar(name='Percent Engagement', x=table['title'],
+                     y=[100 * (x / y) for x, y in zip(table['commentCount'], table['viewCount'])], showlegend=False), 2,
+              1)
 
-# Views
-fig = make_subplots(rows=1, cols=1,
-                    specs=[[{'type': 'xy'}]])
-fig = go.Figure([go.Bar(x=table['title'], y=table['viewCount'])])
-fig.update_layout(title_text='CyberPunk Video Views')
+fig.update_layout(title_text='CyberPunk Video Performance', barmode='stack', height=600, width=800)
 fig.update_xaxes(showticklabels=False)
 st.plotly_chart(fig)
 
@@ -227,8 +234,22 @@ fig.update_layout(title_text='CyberPunk Video Sentiments', height=700, width=100
 fig.update_xaxes(showticklabels=False)
 st.plotly_chart(fig)
 
-st.write(table[['title', 'viewCount', 'likeCount', 'dislikeCount', 'commentCount', 'publishedAt']])
+for i in range(19):
+    fig = make_subplots(rows=1, cols=2,
+                        specs=[[{'type': 'domain'}, {'type': 'domain'}]],
+                        subplot_titles=("TextBlob", "Flair"))  # subplot_titles=(table['title'])
+    fig.add_trace(
+        go.Pie(labels=model_results['Sentiment'],
+               values=table[['TextBlob_Positive', 'TextBlob_Neutral', 'TextBlob_Negative']].iloc[i], name="TextBlob",
+               showlegend=False),
+        1, 1)
+    fig.add_trace(go.Pie(labels=model_results['Sentiment'].drop(1), values=table[['Flair_Positive', 'Flair_Negative']].iloc[i],
+                         name="Flair", showlegend=False),
+                  1, 2)
+    fig.update_layout(title_text=table['title'][i])
+    st.plotly_chart(fig)
 
+st.write(table)
 
 # Texts with most likes
 '''
