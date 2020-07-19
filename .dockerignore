@@ -6,3 +6,5 @@ README.txt
 !/code/dashboard.py
 !/code/sentiment_analysis_db.sqlite
 !data/model_results.csv
+!data/raw_data/google_trends_cyberpunk.csv
+!data/raw_data/videos.csv
