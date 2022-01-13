@@ -4,5 +4,5 @@ flair==0.5
 numpy==1.19.0
 textblob==0.15.3
 plotly==4.8.2
-Pillow==8.3.2
+Pillow==9.0.0
 
